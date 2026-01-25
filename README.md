@@ -1,218 +1,149 @@
-# C++ Options Pricing Engine – Project Overview & Agent Interaction Guide
+# C++ Options Pricing Engine
 
-This document defines the **overall project architecture**, goals, development phases, and how AI agents collaborate to build a high‑performance options pricing engine in C++.
+A high-performance, CPU-optimized options pricing engine that demonstrates why C++ is essential for computational finance. Prices thousands of European options using Monte Carlo simulation with millions of paths per option.
 
-## Project Purpose
+## Performance Results
 
-Build a production‑grade, CPU‑optimized options pricing engine that:
+**M2 MacBook Air (4P+4E cores):**
+- **10,000 options** × 1M paths = **10 billion calculations** in **40.6 seconds**
+- **Throughput**: 246 million paths/second
+- **Memory**: <2MB peak usage
+- **Optimization**: 46% faster than baseline implementation
 
-* Prices **European options** using:
+## Quick Start
 
-  * Black–Scholes (analytic)
-  * Monte Carlo simulation
-* Supports **thousands of options**
-* Uses **millions of paths per option**
-* Scales across CPU cores
-* Ranks the **top 5 options by expected return**
-* Demonstrates why **C++ is required for performance**
-
-American options will be supported later via Longstaff–Schwartz.
-
----
-
-## Technology Constraints
-
-* Language: **C++20**
-* Platform: Linux / macOS / Windows
-* CPU only (no GPU)
-* No external pricing libraries
-* STL preferred
-* Deterministic builds
-
----
-
-## Core Pipeline
-
-```
-CSV Input
-   ↓
-Option Structs
-   ↓
-Black–Scholes Pricing (validation)
-   ↓
-Monte Carlo Pricing (multithreaded)
-   ↓
-Metrics Computation
-   ↓
-Ranking Engine
-   ↓
-Console Output (Top 5)
-```
-
----
-
-## Agents
-
-| Agent             | Owner of                       |
-| ----------------- | ------------------------------ |
-| Quant Agent       | Financial correctness & models |
-| C++ Systems Agent | Architecture & implementation  |
-| Performance Agent | Speed & scalability            |
-| Validation Agent  | Numerical correctness          |
-
----
-
-## Agent Interaction Model
-
-```
-Quant Agent
-   ↓ (models & equations)
-C++ Systems Agent
-   ↓ (working implementation)
-Performance Agent
-   ↓ (optimized engine)
-Validation Agent
-   ↓ (test results & error metrics)
-   ↑
-   └──────────── feedback loop ────────────┘
-```
-
-### Rules
-
-* Quant Agent defines models first
-* Systems Agent implements exactly
-* Performance Agent optimizes without altering math
-* Validation Agent verifies everything
-* Failures loop back to responsible agent
-
----
-
-## Development Phases
-
-### Phase 1 – Financial Core
-
-Owner: Quant Agent
-
-* Define Black–Scholes formulas
-* Define Monte Carlo model
-* Payoff logic
-* Greeks (delta)
-
-Deliverable: Mathematical spec
-
----
-
-### Phase 2 – C++ Implementation
-
-Owner: C++ Systems Agent
-
-* Project structure
-* Data loading
-* Pricing engine
-* Threading system
-* CLI output
-
-Deliverable: Working engine
-
----
-
-### Phase 3 – Performance Optimization
-
-Owner: Performance Agent
-
-* Profiling
-* Loop optimization
-* Memory layout tuning
-* Thread scaling
-* Compiler flags
-
-Deliverable: Benchmarks
-
----
-
-### Phase 4 – Validation & Testing
-
-Owner: Validation Agent
-
-* Compare MC vs Black–Scholes
-* Error bounds
-* Regression tests
-* Edge cases
-
-Deliverable: Validation report
-
----
-
-### Phase 5 – American Options (Optional)
-
-Owner: Quant Agent → Systems → Performance → Validation
-
-* Longstaff–Schwartz implementation
-* Regression solver
-* Early exercise logic
-
----
-
-## Performance Targets
-
-| Metric            | Target       |
-| ----------------- | ------------ |
-| Options priced    | ≥ 1,000      |
-| Paths/option      | ≥ 1,000,000  |
-| Runtime (8 cores) | < 10 seconds |
-| CPU utilization   | > 90%        |
-| Relative error    | < 1%         |
-
----
-
-## Build Standard
-
+Build both versions:
 ```bash
-g++ -std=c++20 -O3 -march=native -pthread
+make
 ```
 
----
-
-## Output Format
-
-Console example:
-
-```
-Rank  Symbol  Price   ExpectedReturn
-1     SPX230C 12.45   0.183
-2     SPX240C 10.91   0.162
-3     ...
+Run baseline implementation:
+```bash
+./pricing.out data/synthetic/european-options/options_medium.csv
 ```
 
----
+Run optimized implementation:
+```bash
+./pricing_optimized.out data/synthetic/european-options/options_medium.csv
+```
 
-## Quality Gates
+Compare performance side-by-side:
+```bash
+make benchmark
+```
 
-The project is considered complete only if:
+Test different dataset sizes:
+```bash
+# Small dataset (100 options)
+./pricing.out data/synthetic/european-options/options_small.csv
 
-* Monte Carlo converges to Black–Scholes
-* Multi-core scaling is demonstrated
-* Benchmarks are reproducible
-* No memory leaks
-* No race conditions
-* Deterministic test results
+# Large dataset (10,000 options)
+./pricing_optimized.out data/synthetic/european-options/options_large.csv
+```
 
----
+Run comprehensive benchmarks:
+```bash
+./benchmark.sh
+```
 
-## Disallowed
+## Architecture
 
-* Python
-* GPU computing
-* Black-box libraries
-* UI frameworks
-* Network dependencies
+```
+CSV Input → Option Structs → Monte Carlo Pricing → Ranking → Top 5 Output
+```
 
----
+**Key Components:**
+- **Monte Carlo Engine**: Geometric Brownian Motion simulation
+- **Threading**: Optimized for 4-8 cores with lock-free aggregation
+- **Memory**: Batch processing with aligned arrays for cache efficiency
+- **Compiler**: `-O3 -march=native -ffast-math` for maximum performance
 
-## Success Criteria
+## Performance Optimizations
 
-* Financially correct
-* Numerically stable
-* Clearly faster than Python
-* Maintainable C++ codebase
-* Clean separation of responsibilities
+1. **Batching**: Process 1024 paths at once for cache locality
+2. **Loop Unrolling**: 4x unroll reduces overhead
+3. **Lock-Free**: Pre-allocated arrays eliminate mutex contention
+4. **Memory Alignment**: 32-byte aligned for optimal cache performance
+
+**Thread Scaling on M2:**
+- 1 thread: 475ms
+- 4 threads: 464ms (optimal)
+- 8 threads: 494ms (efficiency cores add overhead)
+
+## Financial Models
+
+### Black-Scholes Formula
+Used for validation and delta calculation:
+
+```
+C = S₀N(d₁) - Ke^(-rT)N(d₂)
+P = Ke^(-rT)N(-d₂) - S₀N(-d₁)
+
+where:
+d₁ = [ln(S₀/K) + (r + σ²/2)T] / (σ√T)
+d₂ = d₁ - σ√T
+```
+
+### Monte Carlo Simulation
+Primary pricing method using Geometric Brownian Motion:
+
+```
+S_T = S₀ × exp[(r - σ²/2)T + σ√T × Z]
+```
+
+**Where:**
+- `S₀` = Current stock price
+- `K` = Strike price  
+- `r` = Risk-free rate
+- `σ` = Volatility (annualized)
+- `T` = Time to expiration (years)
+- `Z` ~ N(0,1) = Standard normal random variable
+
+**Payoffs:**
+- Call: `max(S_T - K, 0)`
+- Put: `max(K - S_T, 0)`
+
+**Price:** `e^(-rT) × (1/N) × Σ payoff(S_T^i)`
+
+### Data Processing
+
+**Input Format (CSV):**
+```
+symbol,S,K,r,sigma,T,isCall
+AAPL_C_150_30,145.50,150.00,0.05,0.25,0.25,1
+```
+
+**Risk-Neutral Valuation:**
+- Uses risk-free rate `r` for drift
+- Discounts payoffs at risk-free rate
+- Assumes no dividends or early exercise
+
+**Convergence:**
+- 1M paths typically converge within 1% of Black-Scholes
+- Standard error decreases as 1/√N
+- Deterministic seeding ensures reproducible results
+
+**Expected Return Calculation:**
+```
+Expected Return = Price / Strike
+```
+Used for ranking options by potential profitability.
+
+## Build Requirements
+
+- **C++20** compiler (g++ or clang++)
+- **macOS/Linux** (tested on M2 MacBook Air)
+- **Make** build system
+
+## Project Structure
+
+```
+src/
+├── main.cpp                    # Baseline implementation
+├── main_optimized.cpp          # Performance-optimized version
+├── monte_carlo.hpp             # Standard Monte Carlo
+├── monte_carlo_optimized.hpp   # Batched + unrolled version
+├── black_scholes.hpp           # Analytical pricing
+├── option.hpp                  # Data structures
+└── csv_loader.hpp              # Data input
+```
