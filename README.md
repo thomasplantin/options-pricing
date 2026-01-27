@@ -1,6 +1,6 @@
 # C++ Options Pricing Engine
 
-A high-performance, CPU-optimized options pricing engine that demonstrates why C++ is essential for computational finance. Prices thousands of European options using Monte Carlo simulation with millions of paths per option.
+A high-performance, CPU-optimized options pricing engine that demonstrates why C++ is essential for computational finance. Prices thousands of European options using Monte Carlo simulation with millions of paths per option, resulting in billions of computations.
 
 ## Performance Results
 

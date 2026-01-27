@@ -18,9 +18,9 @@ HEADERS = $(SRC_DIR)/option.hpp \
 TEST_SOURCES = $(TEST_DIR)/normal_test.cpp \
                $(TEST_DIR)/black_scholes_test.cpp \
                $(TEST_DIR)/monte_carlo_test.cpp
-TEST_TARGETS = $(TEST_DIR)/normal_test \
-               $(TEST_DIR)/black_scholes_test \
-               $(TEST_DIR)/monte_carlo_test
+TEST_TARGETS = $(TEST_DIR)/normal_test.out \
+               $(TEST_DIR)/black_scholes_test.out \
+               $(TEST_DIR)/monte_carlo_test.out
 
 .PHONY: all clean benchmark test
 
@@ -39,24 +39,24 @@ benchmark: $(TARGET) $(TARGET_OPT)
 	@echo "=== Optimized Implementation ==="
 	@./$(TARGET_OPT) data/synthetic/european-options/options_medium.csv
 
-$(TEST_DIR)/normal_test: $(TEST_DIR)/normal_test.cpp $(HEADERS)
+$(TEST_DIR)/normal_test.out: $(TEST_DIR)/normal_test.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -I/opt/homebrew/opt/googletest/include $(TEST_DIR)/normal_test.cpp -o $@ -L/opt/homebrew/opt/googletest/lib -lgtest -lgtest_main -pthread
 
-$(TEST_DIR)/black_scholes_test: $(TEST_DIR)/black_scholes_test.cpp $(HEADERS)
+$(TEST_DIR)/black_scholes_test.out: $(TEST_DIR)/black_scholes_test.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -I/opt/homebrew/opt/googletest/include $(TEST_DIR)/black_scholes_test.cpp -o $@ -L/opt/homebrew/opt/googletest/lib -lgtest -lgtest_main -pthread
 
-$(TEST_DIR)/monte_carlo_test: $(TEST_DIR)/monte_carlo_test.cpp $(HEADERS)
+$(TEST_DIR)/monte_carlo_test.out: $(TEST_DIR)/monte_carlo_test.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -I/opt/homebrew/opt/googletest/include $(TEST_DIR)/monte_carlo_test.cpp -o $@ -L/opt/homebrew/opt/googletest/lib -lgtest -lgtest_main -pthread
 
 test: $(TEST_TARGETS)
 	@echo "=== Running Normal Distribution Tests ==="
-	@./$(TEST_DIR)/normal_test
+	@./$(TEST_DIR)/normal_test.out
 	@echo ""
 	@echo "=== Running Black-Scholes Tests ==="
-	@./$(TEST_DIR)/black_scholes_test
+	@./$(TEST_DIR)/black_scholes_test.out
 	@echo ""
 	@echo "=== Running Monte Carlo Tests ==="
-	@./$(TEST_DIR)/monte_carlo_test
+	@./$(TEST_DIR)/monte_carlo_test.out
 
 clean:
 	rm -f $(TARGET) $(TARGET_OPT) $(TEST_TARGETS)
