@@ -93,60 +93,6 @@ CSV Input → Option Structs → Monte Carlo Pricing → Ranking → Top 5 Outpu
 - 4 threads: 464ms (optimal)
 - 8 threads: 494ms (efficiency cores add overhead)
 
-## Financial Background
-
-### Why Monte Carlo vs Black-Scholes?
-
-| Method | Use Case | Trade-off |
-|--------|----------|-----------|
-| **Black-Scholes** | Closed-form European options | Fast, exact for model assumptions |
-| **Monte Carlo** | Path-dependent, exotic options, or when no closed-form exists | Flexible but computationally expensive |
-
-For European options, Black-Scholes gives the exact answer instantly. We use Monte Carlo here to:
-1. Demonstrate the simulation framework for future exotic extensions
-2. Validate MC convergence against the known BS solution
-3. Showcase high-performance C++ for compute-intensive workloads
-
-### Risk-Neutral Pricing Intuition
-
-We price options under the **risk-neutral measure**, meaning:
-- The stock's drift is replaced with the risk-free rate `r`, not the actual expected return
-- Payoffs are discounted at `r`
-
-**Why?** Under no-arbitrage, the price of a derivative equals the expected discounted payoff under a probability measure where all assets grow at `r`. This isn't a prediction of real-world returns—it's a pricing convention that ensures consistency with hedging arguments.
-
-In practice: we simulate `S_T = S₀ exp[(r - σ²/2)T + σ√T Z]`, not with the stock's historical drift.
-
-### Validation Approach
-
-Monte Carlo must converge to Black-Scholes for European options:
-
-- **Target**: |MC price − BS price| / BS price < 1%
-- **Path count**: 1M paths chosen because standard error ∝ 1/√N
-  - At 1M paths, SE ≈ σ_payoff / 1000
-  - Empirically achieves <1% relative error for typical parameters
-
-Deterministic seeding ensures reproducible results for testing.
-
-### Expected Return Metric
-
-The ranking uses:
-```
-Expected Return = Price / Strike
-```
-
-**Clarification**: This is *not* the option's actual expected return. It's a simple ratio used to rank options by relative "cheapness" of exposure to the strike. A higher ratio suggests more embedded value per unit of strike. For true expected returns, you'd need real-world drift estimates and probability-weighted outcomes—outside the scope of risk-neutral pricing.
-
-### Model Limitations
-
-| Assumption | Implication |
-|------------|-------------|
-| **European exercise** | No early exercise; American options require different methods (binomial trees, Longstaff-Schwartz) |
-| **No dividends** | Underlying pays no dividends during option life |
-| **Constant volatility** | σ is fixed; no stochastic vol or term structure |
-| **Log-normal prices** | Stock cannot go negative; ignores jumps or fat tails |
-| **Continuous trading** | Assumes frictionless hedging (no transaction costs) |
-
 ## Financial Models
 
 ### Black-Scholes Formula
@@ -162,16 +108,16 @@ d₂ = d₁ - σ√T
 ```
 
 ### Monte Carlo Simulation
-Primary pricing method using Geometric Brownian Motion:
+Primary pricing method using Geometric Brownian Motion under the **risk-neutral measure**:
 
 ```
 S_T = S₀ × exp[(r - σ²/2)T + σ√T × Z]
 ```
 
-**Where:**
+**Parameters:**
 - `S₀` = Current stock price
 - `K` = Strike price  
-- `r` = Risk-free rate
+- `r` = Risk-free rate (replaces actual drift under no-arbitrage)
 - `σ` = Volatility (annualized)
 - `T` = Time to expiration (years)
 - `Z` ~ N(0,1) = Standard normal random variable
@@ -182,35 +128,48 @@ S_T = S₀ × exp[(r - σ²/2)T + σ√T × Z]
 
 **Price:** `e^(-rT) × (1/N) × Σ payoff(S_T^i)`
 
-### Data Processing
+### Why Monte Carlo vs Black-Scholes?
 
-**Input Format (CSV):**
+| Method | Use Case | Trade-off |
+|--------|----------|-----------|
+| **Black-Scholes** | Closed-form European options | Fast, exact for model assumptions |
+| **Monte Carlo** | Path-dependent, exotic options | Flexible but computationally expensive |
+
+For European options, Black-Scholes gives the exact answer instantly. We use Monte Carlo here to:
+1. Demonstrate the simulation framework for future exotic extensions
+2. Validate MC convergence against the known BS solution
+3. Showcase high-performance C++ for compute-intensive workloads
+
+### Validation & Convergence
+
+- **Target**: |MC price − BS price| / BS price < 1%
+- **Path count**: 1M paths → standard error ∝ 1/√N ≈ σ_payoff / 1000
+- Deterministic seeding ensures reproducible results
+
+### Expected Return Metric
+
+```
+Expected Return = Price / Strike
+```
+
+This ratio ranks options by relative "cheapness" of exposure—not actual expected return (which requires real-world drift estimates).
+
+### Model Limitations
+
+| Assumption | Implication |
+|------------|-------------|
+| **European exercise** | No early exercise; American options require different methods |
+| **No dividends** | Underlying pays no dividends during option life |
+| **Constant volatility** | σ is fixed; no stochastic vol or term structure |
+| **Log-normal prices** | Stock cannot go negative; ignores jumps or fat tails |
+| **Continuous trading** | Assumes frictionless hedging (no transaction costs) |
+
+### Input Format (CSV)
+
 ```
 symbol,S,K,r,sigma,T,isCall
 AAPL_C_150_30,145.50,150.00,0.05,0.25,0.25,1
 ```
-
-**Risk-Neutral Valuation:**
-- Uses risk-free rate `r` for drift
-- Discounts payoffs at risk-free rate
-- Assumes no dividends or early exercise
-
-**Convergence:**
-- 1M paths typically converge within 1% of Black-Scholes
-- Standard error decreases as 1/√N
-- Deterministic seeding ensures reproducible results
-
-**Expected Return Calculation:**
-```
-Expected Return = Price / Strike
-```
-Used for ranking options by potential profitability.
-
-## Build Requirements
-
-- **C++20** compiler (g++ or clang++)
-- **macOS/Linux** (tested on M2 MacBook Air)
-- **Make** build system
 
 ## Project Structure
 
