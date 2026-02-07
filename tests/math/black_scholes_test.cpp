@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "../src/option.hpp"
-#include "../src/black_scholes.hpp"
-#include "../src/normal.hpp"
+#include "core/option.hpp"
+#include "math/black_scholes.hpp"
+#include "math/normal.hpp"
 
 class BlackScholesTest : public ::testing::Test {};
 

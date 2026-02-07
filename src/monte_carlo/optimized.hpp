@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
 #include <random>
-#include "option.hpp"
+#include "core/option.hpp"
 
 class MonteCarloOptimized {
 public:

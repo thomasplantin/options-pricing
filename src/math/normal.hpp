@@ -1,6 +1,6 @@
 #pragma once
 #include <cmath>
-#include "constants.hpp"
+#include "core/constants.hpp"
 
 /** 
  * Standard normal probability density function

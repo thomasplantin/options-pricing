@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <random>
-#include "../src/option.hpp"
-#include "../src/monte_carlo.hpp"
-#include "../src/black_scholes.hpp"
+#include "core/option.hpp"
+#include "monte_carlo/baseline.hpp"
+#include "math/black_scholes.hpp"
 
 class MonteCarloTest : public ::testing::Test {};
 

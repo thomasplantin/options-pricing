@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
-#include "option.hpp"
-#include "normal.hpp"
+#include "core/option.hpp"
+#include "math/normal.hpp"
 
 /**
  * Black-Scholes pricing for European options

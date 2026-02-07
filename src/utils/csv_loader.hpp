@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include "option.hpp"
+#include "core/option.hpp"
 
 /**
  * CSV loader for options data

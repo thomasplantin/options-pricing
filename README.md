@@ -2,6 +2,65 @@
 
 A high-performance, CPU-optimized options pricing engine that demonstrates why C++ is essential for computational finance. Prices thousands of European options using Monte Carlo simulation with millions of paths per option, resulting in billions of computations.
 
+## Setup & Quick Start
+
+### Prerequisites
+
+- **C++20** compiler (g++ or clang++)
+- **Make** build system
+- **Google Test** (optional, for running tests)
+  ```bash
+  # macOS
+  brew install googletest
+  
+  # Linux (Ubuntu/Debian)
+  sudo apt-get install libgtest-dev
+  ```
+
+### Build
+
+Clone the repository and build:
+```bash
+git clone https://github.com/thomasplantin/options-pricing.git
+cd options-pricing
+make
+```
+
+This creates `bin/pricing.out` executable.
+
+### Run
+
+**Single dataset:**
+```bash
+# Baseline implementation
+./bin/pricing.out data/synthetic/european-options/options_medium.csv
+
+# Optimized implementation
+./bin/pricing.out --optimized data/synthetic/european-options/options_medium.csv
+```
+
+**Benchmark all datasets:**
+```bash
+make benchmark
+```
+
+This runs small (100 options), medium (1,000 options), and large (10,000 options) datasets with both baseline and optimized implementations, then displays a comparison table.
+
+**Benchmark specific dataset:**
+```bash
+make benchmark-run data=small   # or medium, large
+```
+
+**Run tests:**
+```bash
+make test
+```
+
+**Clean build artifacts:**
+```bash
+make clean
+```
+
 ## Performance Results
 
 **M2 MacBook Air (4P+4E cores):**
@@ -9,42 +68,6 @@ A high-performance, CPU-optimized options pricing engine that demonstrates why C
 - **Throughput**: 246 million paths/second
 - **Memory**: <2MB peak usage
 - **Optimization**: 46% faster than baseline implementation
-
-## Quick Start
-
-Build both versions:
-```bash
-make
-```
-
-Run baseline implementation:
-```bash
-./pricing.out data/synthetic/european-options/options_medium.csv
-```
-
-Run optimized implementation:
-```bash
-./pricing_optimized.out data/synthetic/european-options/options_medium.csv
-```
-
-Compare performance side-by-side:
-```bash
-make benchmark
-```
-
-Test different dataset sizes:
-```bash
-# Small dataset (100 options)
-./pricing.out data/synthetic/european-options/options_small.csv
-
-# Large dataset (10,000 options)
-./pricing_optimized.out data/synthetic/european-options/options_large.csv
-```
-
-Run comprehensive benchmarks:
-```bash
-./benchmark.sh
-```
 
 ## Architecture
 
@@ -69,6 +92,60 @@ CSV Input → Option Structs → Monte Carlo Pricing → Ranking → Top 5 Outpu
 - 1 thread: 475ms
 - 4 threads: 464ms (optimal)
 - 8 threads: 494ms (efficiency cores add overhead)
+
+## Financial Background
+
+### Why Monte Carlo vs Black-Scholes?
+
+| Method | Use Case | Trade-off |
+|--------|----------|-----------|
+| **Black-Scholes** | Closed-form European options | Fast, exact for model assumptions |
+| **Monte Carlo** | Path-dependent, exotic options, or when no closed-form exists | Flexible but computationally expensive |
+
+For European options, Black-Scholes gives the exact answer instantly. We use Monte Carlo here to:
+1. Demonstrate the simulation framework for future exotic extensions
+2. Validate MC convergence against the known BS solution
+3. Showcase high-performance C++ for compute-intensive workloads
+
+### Risk-Neutral Pricing Intuition
+
+We price options under the **risk-neutral measure**, meaning:
+- The stock's drift is replaced with the risk-free rate `r`, not the actual expected return
+- Payoffs are discounted at `r`
+
+**Why?** Under no-arbitrage, the price of a derivative equals the expected discounted payoff under a probability measure where all assets grow at `r`. This isn't a prediction of real-world returns—it's a pricing convention that ensures consistency with hedging arguments.
+
+In practice: we simulate `S_T = S₀ exp[(r - σ²/2)T + σ√T Z]`, not with the stock's historical drift.
+
+### Validation Approach
+
+Monte Carlo must converge to Black-Scholes for European options:
+
+- **Target**: |MC price − BS price| / BS price < 1%
+- **Path count**: 1M paths chosen because standard error ∝ 1/√N
+  - At 1M paths, SE ≈ σ_payoff / 1000
+  - Empirically achieves <1% relative error for typical parameters
+
+Deterministic seeding ensures reproducible results for testing.
+
+### Expected Return Metric
+
+The ranking uses:
+```
+Expected Return = Price / Strike
+```
+
+**Clarification**: This is *not* the option's actual expected return. It's a simple ratio used to rank options by relative "cheapness" of exposure to the strike. A higher ratio suggests more embedded value per unit of strike. For true expected returns, you'd need real-world drift estimates and probability-weighted outcomes—outside the scope of risk-neutral pricing.
+
+### Model Limitations
+
+| Assumption | Implication |
+|------------|-------------|
+| **European exercise** | No early exercise; American options require different methods (binomial trees, Longstaff-Schwartz) |
+| **No dividends** | Underlying pays no dividends during option life |
+| **Constant volatility** | σ is fixed; no stochastic vol or term structure |
+| **Log-normal prices** | Stock cannot go negative; ignores jumps or fat tails |
+| **Continuous trading** | Assumes frictionless hedging (no transaction costs) |
 
 ## Financial Models
 
@@ -139,11 +216,24 @@ Used for ranking options by potential profitability.
 
 ```
 src/
-├── main.cpp                    # Baseline implementation
-├── main_optimized.cpp          # Performance-optimized version
-├── monte_carlo.hpp             # Standard Monte Carlo
-├── monte_carlo_optimized.hpp   # Batched + unrolled version
-├── black_scholes.hpp           # Analytical pricing
-├── option.hpp                  # Data structures
-└── csv_loader.hpp              # Data input
+├── main.cpp                    # Unified main with runtime selection
+├── core/
+│   ├── option.hpp              # Option data structure
+│   └── constants.hpp           # Global constants
+├── math/
+│   ├── normal.hpp              # Normal distribution CDF
+│   └── black_scholes.hpp       # Analytical pricing
+├── monte_carlo/
+│   ├── baseline.hpp            # Standard Monte Carlo
+│   └── optimized.hpp           # Batched + unrolled version
+└── utils/
+    └── csv_loader.hpp          # CSV data input
+
+tests/
+├── math/
+│   ├── normal_test.cpp
+│   └── black_scholes_test.cpp
+└── monte_carlo/
+    ├── baseline_test.cpp
+    └── optimized_test.cpp
 ```

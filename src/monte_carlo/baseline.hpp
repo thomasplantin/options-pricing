@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
 #include <random>
-#include "option.hpp"
+#include "core/option.hpp"
 
 /**
  * Monte Carlo pricing for European options

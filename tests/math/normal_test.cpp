@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "../src/normal.hpp"
+#include "math/normal.hpp"
 
 class NormalTest : public ::testing::Test {};
 
